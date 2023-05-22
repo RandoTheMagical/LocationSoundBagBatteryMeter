@@ -27,7 +27,11 @@ Adafruit_INA219 ina219;
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-
+float Bat100Percent = 8.1; //8.4v is considered fully charged
+//float Bat75Percent = ; //75 percent is higher than 50% and lower than 100%
+float Bat50Percent = 7.64;
+float Bat25Percent = 7.48;
+float Bat0Percent = 6.6;  //6.64v is considered fully flat
 
 void setup() {
  Serial.begin(115200);
@@ -69,17 +73,17 @@ void loop() {
     display.println(String(ma) + "mA");
  
 
-  if(volts <= 7.64)//7.64 is 50 percent.
+  if(volts <= Bat50Percent)//7.64 is 50 percent.
   {
     //if the battery is less than 50%
-    if(volts <= 6.60)//fully flat is 6.62v
+    if(volts <= Bat0Percent)//fully flat is 6.62v
     {
        display.println("0% WARNING");
          display.drawBitmap(98, 0, battery_0pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
     }
     else
     {
-      if (volts <= 7.48)
+      if (volts <= Bat25Percent)
       {
        //  display.println("20%");
            display.drawBitmap(98, 0, battery_25pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
@@ -94,12 +98,12 @@ void loop() {
   else
   {
     //The battery is greater than 50%
-    if(volts >= 8.1)//fully charged is 8.4v
+    if(volts >= Bat100Percent)//fully charged is 8.4v
     {
      //  display.println("100%");
        display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
     }
-    else
+    else //75 percent is higher than 50% and lower than 100%
     {
     //   display.println("75%");
          display.drawBitmap(98, 0, battery_75pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
