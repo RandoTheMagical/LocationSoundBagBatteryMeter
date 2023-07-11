@@ -19,6 +19,7 @@
 //INA226_asukiaaa voltCurrMeter(INA226_ASUKIAAA_ADDR_A0_GND_A1_GND, ina226calib);
 Adafruit_INA219 ina219;
 
+#define LED_BUILTIN 13
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
 #define LOGO_HEIGHT   16
