@@ -105,28 +105,26 @@ void loop() {
    {
     getinfo();
     
-    float volts = 0.0;
+   // float volts = 0.0;
     display.clearDisplay();
     
-      volts = ina219.getBusVoltage_V();
       display.println(String(int(mAh)) +"mAh");
-      ma = ina219.getCurrent_mA();
-      display.println(String(volts) + "V," +String(ma) + "mA");
+      display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
       display.println(String(BatterymWhRemaining) +"Wh Remaining");
        display.println(String(energy_mWh) +"mWh used so far");
    
   
-    if(volts <= Bat50Percent)//7.64 is 50 percent.
+    if(busvoltage <= Bat50Percent)//7.64 is 50 percent.
     {
       //if the battery is less than 50%
-      if(volts <= Bat0Percent)//fully flat is 6.62v
+      if(busvoltage <= Bat0Percent)//fully flat is 6.62v
       {
          display.println("0% WARNING");
            display.drawBitmap(98, 0, battery_0pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
       }
       else
       {
-        if (volts <= Bat25Percent)
+        if (busvoltage <= Bat25Percent)
         {
          //  display.println("20%");
              display.drawBitmap(98, 0, battery_25pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
@@ -141,7 +139,7 @@ void loop() {
     else
     {
       //The battery is greater than 50%
-      if(volts >= Bat100Percent)//fully charged is 8.4v
+      if(busvoltage >= Bat100Percent)//fully charged is 8.4v
       {
        //  display.println("100%");
          display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
@@ -192,7 +190,7 @@ void saveInfo()
 
 void ResetPowerCount()
 {
-          previousMillis, lastread = millis();
+        previousMillis, lastread = millis();
         previousWriteMillis, previousWrite = millis();
         power_mW = 0;
         mAh = 0;
