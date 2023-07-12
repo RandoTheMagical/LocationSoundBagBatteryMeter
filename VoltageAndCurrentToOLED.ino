@@ -3,8 +3,7 @@
  * Modified for the INA219 power meter used in the pcb mounted version of my power supply
  * also testing github
  */
-
-
+ 
 //#include <INA226_asukiaaa.h>
 #include <Adafruit_INA219.h>
 
@@ -39,39 +38,69 @@ float power_mW = 0;
 float mAh = 0;
 float energy_mWh = 0;
 
+float BatterymAh = 0; //this is the measured capacity of the battery.
+//in the planned complete system, it will read from the RFID chip on the battery.
+float BatterymWh = 53280; //possibly will use the Wh rating of the battery - 53.28 is the stated rating on the np-f970 battery
+float BatterymWhRemaining = 53280; //currently set to same as BatteryWh, but in the monitoring system will most likely be read, and set from the RFID chip initially
+
 unsigned long tick;
 unsigned long lastread;
 unsigned long previousMillis;
+unsigned long previousWriteMillis;
+unsigned long previousWrite;
 
 const int interval = 200; //interval to update screen
+const long writeInterval = 60000; //1 MINUTE
 
 void setup() {
  Serial.begin(115200);
+ pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
+  //start up RFID reader
+  //read data from RFID module
+     //read batterymAh
+     //read batteryWhRemaining
 
+  //Start the OLED desplay:
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   }
+
+  //Start the INA219 current sensor:
   if (ina219.begin() != 0) {
     Serial.println("Failed to begin INA226");
   }
+  
   display.display();
   delay(2000);
   display.clearDisplay();
 
-  display.setTextSize(2);
+  display.setTextSize(1);
   display.setTextColor(WHITE);
-//  display.setCursor(0, 10);
-//  display.display(); 
 
-previousMillis, lastread = millis();
-  
+  previousMillis, lastread = millis();
+  previousWriteMillis, previousWrite = millis();
 }
 
 void loop() {
+
   unsigned long currentMillis = millis();
-  
+  int resetButtonState = digitalRead(2);
+    if (resetButtonState == 0) //if button between pin2 and Gnd is pressed (input pulled low)
+    {
+      ResetPowerCount();//reset the project
+    }
+
   int16_t ma, mv, mw;
+  if((currentMillis - previousWriteMillis) >= writeInterval)
+    {
+      previousWriteMillis = currentMillis;
+      saveInfo();
+    }
+   // Serial.println("CurrentMilis: " + String(currentMillis));
+   // Serial.println("PreviousMillis: " + String(previousMillis));
+   // Serial.println("previousWriteMillis: " + String(previousWriteMillis));
+   // Serial.println("writeInterval: " + String(writeInterval));
    if ((currentMillis - previousMillis) >= interval)
    {
     getinfo();
@@ -80,9 +109,11 @@ void loop() {
     display.clearDisplay();
     
       volts = ina219.getBusVoltage_V();
-      display.println(String(mAh) +"mAh");
+      display.println(String(int(mAh)) +"mAh");
       ma = ina219.getCurrent_mA();
       display.println(String(volts) + "V," +String(ma) + "mA");
+      display.println(String(BatterymWhRemaining) +"Wh Remaining");
+       display.println(String(energy_mWh) +"mWh used so far");
    
   
     if(volts <= Bat50Percent)//7.64 is 50 percent.
@@ -126,8 +157,10 @@ void loop() {
       display.setCursor(0,0);
     display.display();
     delay(1000);
+    previousMillis = currentMillis;
   } //end of if interval check
-}//end of loop
+    
+}//end of loop function
 
 void getinfo()
 {
@@ -141,5 +174,29 @@ void getinfo()
   tick = newtime - lastread;
   mAh += current_mA * tick / 3600000.0;
   energy_mWh += power_mW * tick / 3600000.0;
+  BatterymWhRemaining -= power_mW * tick / 3600000.0;//subtract the used power since last cycle
   lastread = newtime;
+}
+
+//saveInfo() will be called to write details to the RFID chip.
+//for development puroposes, it may be used to save to some kind of eeprom or memory card until the RFID hardware arrives.
+void saveInfo()
+{
+  //open rfid write.
+  //write current BatteryWhRemaining
+  //close rfid write
+  Serial.println("Battery eeprom updated after 1 minute");
+  Serial.println("Battery Watt Hour remaining: " + String(BatterymWhRemaining)+" mWh");
+  Serial.println("mWh used: " + String(energy_mWh));
+}
+
+void ResetPowerCount()
+{
+          previousMillis, lastread = millis();
+        previousWriteMillis, previousWrite = millis();
+        power_mW = 0;
+        mAh = 0;
+        energy_mWh = 0;
+        BatterymAh = 0; //this is the measured capacity of the battery.
+        BatterymWhRemaining = BatterymWh; //currently set to same as BatteryWh, but in the monitoring system will most likely be read, and set from the RFID chip initially
 }
