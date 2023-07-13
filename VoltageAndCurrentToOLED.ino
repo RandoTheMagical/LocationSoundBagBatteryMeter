@@ -3,9 +3,26 @@
  * Modified for the INA219 power meter used in the pcb mounted version of my power supply
  * also testing github
  */
+
+
+ /* Typical pin layout used:
+ * -----------------------------------------------------------------------------------------
+ *             MFRC522      Arduino       Arduino   Arduino    Arduino          Arduino
+ *             Reader/PCD   Uno/101       Mega      Nano v3    Leonardo/Micro   Pro Micro
+ * Signal      Pin          Pin           Pin       Pin        Pin              Pin
+ * -----------------------------------------------------------------------------------------
+ * RST/Reset   RST          9             5         D9         RESET/ICSP-5     RST
+ * SPI SS      SDA(SS)      10            53        D10        10               10
+ * SPI MOSI    MOSI         11 / ICSP-4   51        D11        ICSP-4           16
+ * SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
+ * SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
+ *
+ * More pin layouts for other boards can be found here: https://github.com/miguelbalboa/rfid#pin-layout
+ */
  
 //#include <INA226_asukiaaa.h>
 #include <Adafruit_INA219.h>
+//#include <MFRC522.h> //this is for the RFID reader. Uncomment when ready to start deploying. Will need to install on surface to work there.
 
 
 #include <Wire.h>
@@ -15,6 +32,12 @@
 
 Adafruit_INA219 ina219;
 
+//following defines are for RFID tag reader. uncomment when deploying rfid
+/*
+#define RST_PIN         9          // Configurable, see typical pin layout above
+#define SS_PIN          10         // Configurable, see typical pin layout above
+*/
+
 #define LED_BUILTIN 13
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
@@ -23,12 +46,20 @@ Adafruit_INA219 ina219;
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+//MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance. for rfid reader
 
 float Bat100Percent = 8.1; //8.4v is considered fully charged
 //float Bat75Percent = ; //75 percent is higher than 50% and lower than 100%
 float Bat50Percent = 7.64;
 float Bat25Percent = 7.48;
 float Bat0Percent = 6.6;  //6.64v is considered fully flat
+
+int batteryFull;
+int battery25;
+int battery50;
+int battery75;
+int batteryDead;
+
 
 float shuntvoltage = 0;
 float busvoltage = 0;
@@ -38,7 +69,7 @@ float power_mW = 0;
 float mAh = 0;
 float energy_mWh = 0;
 
-float BatterymAh = 0; //this is the measured capacity of the battery.
+float BatterymAh = 0; //this is the measured capacity of the battery. The tested battery level is aprox 7000mAh / 48110mWh
 //in the planned complete system, it will read from the RFID chip on the battery.
 float BatterymWh = 53280; //possibly will use the Wh rating of the battery - 53.28 is the stated rating on the np-f970 battery
 float BatterymWhRemaining = 53280; //currently set to same as BatteryWh, but in the monitoring system will most likely be read, and set from the RFID chip initially
@@ -49,13 +80,22 @@ unsigned long previousMillis;
 unsigned long previousWriteMillis;
 unsigned long previousWrite;
 
+//(Y/X *100 = P%)
+//chargePercent = int(BatterymWhRemaining / BatterymWh *100);
+int chargePercent;
+
 const int interval = 200; //interval to update screen
 const long writeInterval = 60000; //1 MINUTE
+
 
 void setup() {
  Serial.begin(115200);
  pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
-  //start up RFID reader
+
+//  mfrc522.PCD_Init();    // Init MFRC522 rfid reader
+//  delay(4);       // Optional delay. Some board do need more time after init to be ready, see Readme
+
+  
   //read data from RFID module
      //read batterymAh
      //read batteryWhRemaining
@@ -91,20 +131,18 @@ void loop() {
       ResetPowerCount();//reset the project
     }
 
-  int16_t ma, mv, mw;
+ // int16_t ma, mv, mw;
   if((currentMillis - previousWriteMillis) >= writeInterval)
     {
       previousWriteMillis = currentMillis;
       saveInfo();
     }
-   // Serial.println("CurrentMilis: " + String(currentMillis));
-   // Serial.println("PreviousMillis: " + String(previousMillis));
-   // Serial.println("previousWriteMillis: " + String(previousWriteMillis));
-   // Serial.println("writeInterval: " + String(writeInterval));
+
    if ((currentMillis - previousMillis) >= interval)
    {
     getinfo();
-    
+    chargePercent = int(BatterymWhRemaining / BatterymWh *100);
+    Serial.println("charged Percent: "+ String(chargePercent));
    // float volts = 0.0;
     display.clearDisplay();
     
@@ -112,6 +150,7 @@ void loop() {
       display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
       display.println(String(BatterymWhRemaining) +"Wh Remaining");
        display.println(String(energy_mWh) +"mWh used so far");
+      // display.println(BatterymWh);
    
   
     if(busvoltage <= Bat50Percent)//7.64 is 50 percent.
@@ -186,6 +225,13 @@ void saveInfo()
   Serial.println("Battery eeprom updated after 1 minute");
   Serial.println("Battery Watt Hour remaining: " + String(BatterymWhRemaining)+" mWh");
   Serial.println("mWh used: " + String(energy_mWh));
+}
+
+void loadInfo()
+{
+  //loads battery info from RFID eeprom
+  //float BatterymWh - The total Mwh of the battery
+  //float BatterymWhRemaining - The remaining power left in the battery
 }
 
 void ResetPowerCount()
