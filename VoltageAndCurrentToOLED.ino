@@ -54,11 +54,13 @@ float Bat50Percent = 7.64;
 float Bat25Percent = 7.48;
 float Bat0Percent = 6.6;  //6.64v is considered fully flat
 
-int batteryFull;
-int battery25;
-int battery50;
-int battery75;
-int batteryDead;
+//percentages where the icon will show  relevent icon
+int batteryDead = 10;
+int battery25 = 30;
+int battery50 = 50;
+int battery75 = 70;
+int batteryFull = 90;
+
 
 
 float shuntvoltage = 0;
@@ -153,24 +155,23 @@ void loop() {
       // display.println(BatterymWh);
    
   
-    if(busvoltage <= Bat50Percent)//7.64 is 50 percent.
+    if(chargePercent <= battery50)
     {
       //if the battery is less than 50%
-      if(busvoltage <= Bat0Percent)//fully flat is 6.62v
+      if(chargePercent <= batteryDead)//fully flat is 6.62v
       {
          display.println("0% WARNING");
            display.drawBitmap(98, 0, battery_0pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
       }
       else
       {
-        if (busvoltage <= Bat25Percent)
+        if (chargePercent <= battery25)//if it is greater than the dead state, but less than battery25 percent
         {
-         //  display.println("20%");
              display.drawBitmap(98, 0, battery_25pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
         }
         else
         {
-         //  display.println("50%");
+         //  display.println("50%");//otherwise, it is greater than the 25%, but still lower than the 50%, so show 50%
            display.drawBitmap(98, 0, battery_50pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
         }
       }
@@ -178,9 +179,9 @@ void loop() {
     else
     {
       //The battery is greater than 50%
-      if(busvoltage >= Bat100Percent)//fully charged is 8.4v
+      if(chargePercent >= batteryFull)//if the battery is greater than the full mark (which is 90%)
       {
-       //  display.println("100%");
+        //show the full battery
          display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
       }
       else //75 percent is higher than 50% and lower than 100%
