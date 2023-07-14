@@ -48,11 +48,13 @@ Adafruit_INA219 ina219;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 //MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance. for rfid reader
 
+/*
 float Bat100Percent = 8.1; //8.4v is considered fully charged
 //float Bat75Percent = ; //75 percent is higher than 50% and lower than 100%
 float Bat50Percent = 7.64;
 float Bat25Percent = 7.48;
 float Bat0Percent = 6.6;  //6.64v is considered fully flat
+*/
 
 //percentages where the icon will show  relevent icon
 int batteryDead = 10;
@@ -88,6 +90,7 @@ int chargePercent;
 
 const int interval = 200; //interval to update screen
 const long writeInterval = 60000; //1 MINUTE
+const float maxCharged = 8.3; //the maximum charge off a charger should be 8.4v. Using 8.3v gives a little error factor. this is used to decide if battery is fully charged.
 
 
 void setup() {
@@ -101,6 +104,7 @@ void setup() {
   //read data from RFID module
      //read batterymAh
      //read batteryWhRemaining
+  loadInfo();//this function will read the battery info from the RFID chip, and also check the voltage on the battery
 
   //Start the OLED desplay:
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
@@ -220,19 +224,29 @@ void getinfo()
 //for development puroposes, it may be used to save to some kind of eeprom or memory card until the RFID hardware arrives.
 void saveInfo()
 {
+  //check that the ID of the RFID hasn't changed
+  //if (battery ID is stored id
+  //  then save the current stats to 
   //open rfid write.
   //write current BatteryWhRemaining
   //close rfid write
   Serial.println("Battery eeprom updated after 1 minute");
-  Serial.println("Battery Watt Hour remaining: " + String(BatterymWhRemaining)+" mWh");
-  Serial.println("mWh used: " + String(energy_mWh));
+  Serial.println("mWh used : " + String(energy_mWh) +" mWh");
+  Serial.println("remaining: " + String(BatterymWhRemaining)+" mWh");
+  Serial.println("Voltage  : " + String(busvoltage) +"V");
 }
 
 void loadInfo()
 {
+  float batteryLevelmV = ina219.getShuntVoltage_mV();
   //loads battery info from RFID eeprom
   //float BatterymWh - The total Mwh of the battery
   //float BatterymWhRemaining - The remaining power left in the battery
+   if(batteryLevelmV >= maxCharged)//if the battery is full charged, resed the used mWh counter
+   {
+    ResetPowerCount();
+    Serial.println("Watt hours reset to battery default");
+   }
 }
 
 void ResetPowerCount()
