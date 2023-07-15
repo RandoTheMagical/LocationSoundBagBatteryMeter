@@ -65,6 +65,8 @@ int batteryFull = 90;
 
 
 
+
+
 float shuntvoltage = 0;
 float busvoltage = 0;
 float current_mA = 0;
@@ -87,6 +89,12 @@ unsigned long previousWrite;
 //(Y/X *100 = P%)
 //chargePercent = int(BatterymWhRemaining / BatterymWh *100);
 int chargePercent;
+int menuNumb = 1; //this number will indicate which display menu is selected
+/*
+menuNumb = 1: Default menu, shows multiple items
+menuNumb = 2: Displays mWh left in battery
+menuNumb = 3: Displays mWh drawn from battery
+*/
 
 const int interval = 200; //interval to update screen
 const long writeInterval = 60000; //1 MINUTE
@@ -96,6 +104,7 @@ const float maxCharged = 8.3; //the maximum charge off a charger should be 8.4v.
 void setup() {
  Serial.begin(115200);
  pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
+ pinMode(3, INPUT_PULLUP);
 
 //  mfrc522.PCD_Init();    // Init MFRC522 rfid reader
 //  delay(4);       // Optional delay. Some board do need more time after init to be ready, see Readme
@@ -132,9 +141,29 @@ void loop() {
 
   unsigned long currentMillis = millis();
   int resetButtonState = digitalRead(2);
+  int modeButtonState = digitalRead(3);
+
     if (resetButtonState == 0) //if button between pin2 and Gnd is pressed (input pulled low)
     {
       ResetPowerCount();//reset the project
+    }
+    
+    /*
+    the following if statement is for the menu select
+    note that currently this has no delay in retriggering the change. 
+    If you hold it down, it will cycle through the menu each iteration of the loop/
+    which is currently untested, but will likely fly through.
+    */
+    if (modeButtonState == 0)
+    {
+      if(menuNumb <=2)
+        {
+          menuNumb++;
+        }
+        else
+        {
+          menuNumb = 1;
+        }
     }
 
  // int16_t ma, mv, mw;
@@ -152,12 +181,25 @@ void loop() {
    // float volts = 0.0;
     display.clearDisplay();
     
+    if(menuNumb == 1)
+    {
+      display.setTextSize(1);
       display.println(String(int(mAh)) +"mAh");
       display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
       display.println(String(BatterymWhRemaining) +"Wh Remaining");
        display.println(String(energy_mWh) +"mWh used so far");
       // display.println(BatterymWh);
-   
+    }
+    else if(menuNumb == 2)
+    {
+      display.setTextSize(3);
+      display.println(String(BatterymWhRemaining) +"remaining");
+    }
+    else if(menuNumb == 3 )
+    {
+      display.setTextSize(3);
+      display.println(String(energy_mWh) +"mWh used");
+    }
   
     if(chargePercent <= battery50)
     {
