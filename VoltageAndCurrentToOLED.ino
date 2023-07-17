@@ -63,10 +63,6 @@ int battery50 = 50;
 int battery75 = 70;
 int batteryFull = 90;
 
-
-
-
-
 float shuntvoltage = 0;
 float busvoltage = 0;
 float current_mA = 0;
@@ -85,6 +81,8 @@ unsigned long lastread;
 unsigned long previousMillis;
 unsigned long previousWriteMillis;
 unsigned long previousWrite;
+
+volatile int buttonState = 0;
 
 //(Y/X *100 = P%)
 //chargePercent = int(BatterymWhRemaining / BatterymWh *100);
@@ -105,6 +103,7 @@ void setup() {
  Serial.begin(115200);
  pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
  pinMode(3, INPUT_PULLUP);
+ attachInterrupt(digitalPinToInterrupt(3), pin_ISR, HIGH);
 
 //  mfrc522.PCD_Init();    // Init MFRC522 rfid reader
 //  delay(4);       // Optional delay. Some board do need more time after init to be ready, see Readme
@@ -148,23 +147,7 @@ void loop() {
       ResetPowerCount();//reset the project
     }
     
-    /*
-    the following if statement is for the menu select
-    note that currently this has no delay in retriggering the change. 
-    If you hold it down, it will cycle through the menu each iteration of the loop/
-    which is currently untested, but will likely fly through.
-    */
-    if (modeButtonState == 0)
-    {
-      if(menuNumb <=2)
-        {
-          menuNumb++;
-        }
-        else
-        {
-          menuNumb = 1;
-        }
-    }
+  
 
  // int16_t ma, mv, mw;
   if((currentMillis - previousWriteMillis) >= writeInterval)
@@ -180,63 +163,8 @@ void loop() {
     Serial.println("charged Percent: "+ String(chargePercent));
    // float volts = 0.0;
     display.clearDisplay();
-    
-    if(menuNumb == 1)
-    {
-      display.setTextSize(1);
-      display.println(String(int(mAh)) +"mAh");
-      display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
-      display.println(String(BatterymWhRemaining) +"Wh Remaining");
-       display.println(String(energy_mWh) +"mWh used so far");
-      // display.println(BatterymWh);
-    }
-    else if(menuNumb == 2)
-    {
-      display.setTextSize(3);
-      display.println(String(BatterymWhRemaining) +"remaining");
-    }
-    else if(menuNumb == 3 )
-    {
-      display.setTextSize(3);
-      display.println(String(energy_mWh) +"mWh used");
-    }
-  
-    if(chargePercent <= battery50)
-    {
-      //if the battery is less than 50%
-      if(chargePercent <= batteryDead)//fully flat is 6.62v
-      {
-         display.println("0% WARNING");
-           display.drawBitmap(98, 0, battery_0pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
-      }
-      else
-      {
-        if (chargePercent <= battery25)//if it is greater than the dead state, but less than battery25 percent
-        {
-             display.drawBitmap(98, 0, battery_25pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
-        }
-        else
-        {
-         //  display.println("50%");//otherwise, it is greater than the 25%, but still lower than the 50%, so show 50%
-           display.drawBitmap(98, 0, battery_50pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
-        }
-      }
-    }
-    else
-    {
-      //The battery is greater than 50%
-      if(chargePercent >= batteryFull)//if the battery is greater than the full mark (which is 90%)
-      {
-        //show the full battery
-         display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
-      }
-      else //75 percent is higher than 50% and lower than 100%
-      {
-      //   display.println("75%");
-           display.drawBitmap(98, 0, battery_75pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
-      }
-    }
-      
+    menuDisplay();
+    displayChargeIcon(); 
    //   display.println("voltage:" +String(mw) + "mW");
       display.setCursor(0,0);
     display.display();
@@ -300,4 +228,94 @@ void ResetPowerCount()
         energy_mWh = 0;
         BatterymAh = 0; //this is the measured capacity of the battery.
         BatterymWhRemaining = BatterymWh; //currently set to same as BatteryWh, but in the monitoring system will most likely be read, and set from the RFID chip initially
+}
+
+void menuDisplay()
+{
+      if(menuNumb == 1)
+    {
+      display.setTextSize(1);
+      display.println(String(int(mAh)) +"mAh");
+      display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
+      display.println(String(BatterymWhRemaining) +"Wh Remaining");
+       display.println(String(energy_mWh) +"mWh used so far");
+      // display.println(BatterymWh);
+    }
+    else if(menuNumb == 2)
+    {
+      display.setTextSize(2);
+      display.println(String(BatterymWhRemaining));
+      display.println("mWh Remaining");
+    }
+    else if(menuNumb == 3 )
+    {
+      display.setTextSize(2);
+      display.println(String(energy_mWh));
+      display.println("mWh used");
+    }
+}
+
+void displayChargeIcon()
+{
+      if(chargePercent <= battery50)
+    {
+      //if the battery is less than 50%
+      if(chargePercent <= batteryDead)//fully flat is 6.62v
+      {
+         display.println("0% WARNING");
+           display.drawBitmap(98, 0, battery_0pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+      }
+      else
+      {
+        if (chargePercent <= battery25)//if it is greater than the dead state, but less than battery25 percent
+        {
+             display.drawBitmap(98, 0, battery_25pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+        }
+        else
+        {
+         //  display.println("50%");//otherwise, it is greater than the 25%, but still lower than the 50%, so show 50%
+           display.drawBitmap(98, 0, battery_50pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+        }
+      }
+    }
+    else
+    {
+      //The battery is greater than 50%
+      if(chargePercent >= batteryFull)//if the battery is greater than the full mark (which is 90%)
+      {
+        //show the full battery
+         display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+      }
+      else //75 percent is higher than 50% and lower than 100%
+      {
+      //   display.println("75%");
+           display.drawBitmap(98, 0, battery_75pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+      }
+    }
+}
+
+void pin_ISR() {
+ // buttonState = digitalRead(3);//read button on pin 3, and store it
+  /*
+    the following if statement is for the menu select
+    note that currently this has no delay in retriggering the change. 
+    If you hold it down, it will cycle through the menu each iteration of the loop/
+    which is currently untested, but will likely fly through.
+  */
+  static unsigned long last_interrupt_time = 0;
+  unsigned long interrupt_time = millis();
+  // If interrupts come faster than 200ms, assume it's a bounce and ignore
+  if (interrupt_time - last_interrupt_time > 200) 
+  {
+      if(menuNumb <=2)
+        {
+          menuNumb++;
+        }
+        else
+        {
+          menuNumb = 1;
+        }
+  }
+  last_interrupt_time = interrupt_time;
+  
 }
