@@ -24,7 +24,7 @@
 #include <Adafruit_INA219.h>
 //#include <MFRC522.h> //this is for the RFID reader. Uncomment when ready to start deploying. Will need to install on surface to work there.
 
-
+#include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
