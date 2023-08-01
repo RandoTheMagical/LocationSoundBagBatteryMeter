@@ -24,7 +24,7 @@
 #include <Adafruit_INA219.h>
 //#include <MFRC522.h> //this is for the RFID reader. Uncomment when ready to start deploying. Will need to install on surface to work there.
 
-#include <SPI.h>
+//#include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -39,6 +39,9 @@ Adafruit_INA219 ina219;
 */
 
 #define LED_BUILTIN 13
+#define Pin_button_reset 2
+#define Pin_button_menu 3
+
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
 #define LOGO_HEIGHT   16
@@ -101,9 +104,9 @@ const float maxCharged = 8.3; //the maximum charge off a charger should be 8.4v.
 
 void setup() {
  Serial.begin(115200);
- pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
- pinMode(3, INPUT_PULLUP);
- attachInterrupt(digitalPinToInterrupt(3), pin_ISR, HIGH);
+ pinMode(Pin_button_reset, INPUT); //reset counter button on pin 2
+ pinMode(Pin_button_menu, INPUT);
+//attachInterrupt(digitalPinToInterrupt(3), pin_ISR, HIGH);
 
 //  mfrc522.PCD_Init();    // Init MFRC522 rfid reader
 //  delay(4);       // Optional delay. Some board do need more time after init to be ready, see Readme
@@ -139,12 +142,24 @@ void setup() {
 void loop() {
 
   unsigned long currentMillis = millis();
-  int resetButtonState = digitalRead(2);
-  int modeButtonState = digitalRead(3);
+  int resetButtonState = digitalRead(Pin_button_reset);
+  int modeButtonState = digitalRead(Pin_button_menu);
 
     if (resetButtonState == 0) //if button between pin2 and Gnd is pressed (input pulled low)
     {
       ResetPowerCount();//reset the project
+    }
+
+    if (modeButtonState == 0)
+    {
+       if(menuNumb <4 )
+        {
+          menuNumb++;
+        }
+        else
+        {
+          menuNumb = 1;
+        }
     }
     
   
@@ -253,6 +268,14 @@ void menuDisplay()
       display.println(String(energy_mWh));
       display.println("mWh used");
     }
+    else if(menuNumb ==4)
+    {
+      display.setTextSize(2);
+      display.println(String(busvoltage) + "V");
+      //time remaining = 
+      display.println(String(BatterymWhRemaining / power_mW) +" hrs");
+      //display.println();
+    }
 }
 
 void displayChargeIcon()
@@ -294,14 +317,16 @@ void displayChargeIcon()
     }
 }
 
+
 void pin_ISR() {
- // buttonState = digitalRead(3);//read button on pin 3, and store it
+  buttonState = digitalRead(Pin_button_menu);//read button on pin 3, and store it
   /*
     the following if statement is for the menu select
     note that currently this has no delay in retriggering the change. 
     If you hold it down, it will cycle through the menu each iteration of the loop/
     which is currently untested, but will likely fly through.
   */
+  
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 200ms, assume it's a bounce and ignore
