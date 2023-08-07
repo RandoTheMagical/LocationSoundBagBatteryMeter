@@ -152,7 +152,7 @@ void loop() {
   int resetButtonState = digitalRead(Pin_button_reset);
   int modeButtonState = digitalRead(Pin_button_menu);
 
-    u8g2.clearDisplay();
+    u8g2.clearBuffer();
     if (resetButtonState == 0) //if button between pin2 and Gnd is pressed (input pulled low)
     {
       ResetPowerCount();//reset the project
@@ -293,7 +293,7 @@ void menuDisplay()
       //display.println();
        u8g2.drawStr(0,32, ((String(BatterymWhRemaining / power_mW) +" hrs").c_str()));
     }
-    u8g2.sendBuffer();  
+   // u8g2.sendBuffer();  
 }
 
 void displayChargeIcon()
@@ -339,7 +339,7 @@ void displayChargeIcon()
       }
     }
   
-  u8g2.sendBuffer();
+  //u8g2.sendBuffer();
 }
 
 
