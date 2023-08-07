@@ -19,15 +19,18 @@
  *
  * More pin layouts for other boards can be found here: https://github.com/miguelbalboa/rfid#pin-layout
  */
- 
+
+
 //#include <INA226_asukiaaa.h>
 #include <Adafruit_INA219.h>
 //#include <MFRC522.h> //this is for the RFID reader. Uncomment when ready to start deploying. Will need to install on surface to work there.
 
 //#include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <Arduino.h>
+#include <U8g2lib.h>
+//#include <Adafruit_GFX.h>
+//#include <Adafruit_SSD1306.h>
 #include "battery.h"
 
 Adafruit_INA219 ina219;
@@ -45,10 +48,12 @@ Adafruit_INA219 ina219;
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
 #define LOGO_HEIGHT   16
-#define LOGO_WIDTH    30
+#define LOGO_WIDTH    28
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // Adafruit ESP8266/32u4/ARM Boards + FeatherWing OLED
+
 //MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance. for rfid reader
 
 /*
@@ -106,6 +111,7 @@ void setup() {
  Serial.begin(115200);
  pinMode(Pin_button_reset, INPUT); //reset counter button on pin 2
  pinMode(Pin_button_menu, INPUT);
+ 
 //attachInterrupt(digitalPinToInterrupt(3), pin_ISR, HIGH);
 
 //  mfrc522.PCD_Init();    // Init MFRC522 rfid reader
@@ -118,22 +124,23 @@ void setup() {
   loadInfo();//this function will read the battery info from the RFID chip, and also check the voltage on the battery
 
   //Start the OLED desplay:
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;);
-  }
+  u8g2.begin();
 
   //Start the INA219 current sensor:
   if (ina219.begin() != 0) {
     Serial.println("Failed to begin INA226");
   }
-  
-  display.display();
-  delay(2000);
-  display.clearDisplay();
 
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
+  u8g2.clearBuffer();          // clear the internal memory
+  u8g2.setFont(u8g2_font_ncenB08_tr);  // choose a suitable font
+  u8g2.drawStr(0,10,"power monitor booting");  // write something to the internal memory
+  u8g2.sendBuffer();          // transfer internal memory to the display
+  delay(2000);
+  u8g2.clearDisplay();
+  u8g2.sendBuffer();          // transfer internal memory to the display
+
+ // display.setTextSize(1);
+//  display.setTextColor(WHITE);
 
   previousMillis, lastread = millis();
   previousWriteMillis, previousWrite = millis();
@@ -145,6 +152,7 @@ void loop() {
   int resetButtonState = digitalRead(Pin_button_reset);
   int modeButtonState = digitalRead(Pin_button_menu);
 
+    u8g2.clearDisplay();
     if (resetButtonState == 0) //if button between pin2 and Gnd is pressed (input pulled low)
     {
       ResetPowerCount();//reset the project
@@ -177,12 +185,12 @@ void loop() {
     chargePercent = int(BatterymWhRemaining / BatterymWh *100);
     Serial.println("charged Percent: "+ String(chargePercent));
    // float volts = 0.0;
-    display.clearDisplay();
     menuDisplay();
     displayChargeIcon(); 
    //   display.println("voltage:" +String(mw) + "mW");
-      display.setCursor(0,0);
-    display.display();
+    //  display.setCursor(0,0);
+ //   u8g2.clearDisplay();
+    u8g2.sendBuffer();          // transfer internal memory to the display
     delay(1000);
     previousMillis = currentMillis;
   } //end of if interval check
@@ -249,33 +257,43 @@ void menuDisplay()
 {
       if(menuNumb == 1)
     {
-      display.setTextSize(1);
-      display.println(String(int(mAh)) +"mAh");
-      display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
-      display.println(String(BatterymWhRemaining) +"Wh Remaining");
-       display.println(String(energy_mWh) +"mWh used so far");
+      //display.setTextSize(1);
+      u8g2.setFont(u8g2_font_ncenB08_tr);  // choose a suitable font
+      //display.println(String(int(mAh)) +"mAh");
+      u8g2.drawStr(0,16, (String(int(mAh)) +"mAh").c_str());
+      //display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
+      //display.println(String(BatterymWhRemaining) +"Wh Remaining");
+      // display.println(String(energy_mWh) +"mWh used so far");
+      u8g2.drawStr(0,32, (String(energy_mWh) +"mWh used so far").c_str());
       // display.println(BatterymWh);
     }
     else if(menuNumb == 2)
     {
-      display.setTextSize(2);
-      display.println(String(BatterymWhRemaining));
-      display.println("mWh Remaining");
+      u8g2.setFont(u8g2_font_ncenB08_tr);  // choose a suitable font
+      //display.setTextSize(2);
+       u8g2.drawStr(0,16, String(BatterymWhRemaining).c_str());
+     // display.println(String(BatterymWhRemaining));
+       u8g2.drawStr(0,32, "mWh Remaining");
     }
     else if(menuNumb == 3 )
     {
-      display.setTextSize(2);
-      display.println(String(energy_mWh));
-      display.println("mWh used");
+      //display.setTextSize(2);
+      //display.println(String(energy_mWh));
+      u8g2.drawStr(0,16, String(energy_mWh).c_str() );
+      //display.println("mWh used");
+      u8g2.drawStr(0,32, "mWh used");
     }
     else if(menuNumb ==4)
     {
-      display.setTextSize(2);
-      display.println(String(busvoltage) + "V");
+     // display.setTextSize(2);
+      //display.println(String(busvoltage) + "V");
+       u8g2.drawStr(0,16, (String(busvoltage) + "V").c_str());
       //time remaining = 
-      display.println(String(BatterymWhRemaining / power_mW) +" hrs");
+      //display.println(String(BatterymWhRemaining / power_mW) +" hrs");
       //display.println();
+       u8g2.drawStr(0,32, ((String(BatterymWhRemaining / power_mW) +" hrs").c_str()));
     }
+    u8g2.sendBuffer();  
 }
 
 void displayChargeIcon()
@@ -285,19 +303,22 @@ void displayChargeIcon()
       //if the battery is less than 50%
       if(chargePercent <= batteryDead)//fully flat is 6.62v
       {
-         display.println("0% WARNING");
-           display.drawBitmap(98, 0, battery_0pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+        // display.println("0% WARNING");
+         //  display.drawBitmap(98, 0, battery_0pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+           u8g2.drawXBM( 80, 0, LOGO_WIDTH, LOGO_HEIGHT, battery_0pc);
       }
       else
       {
         if (chargePercent <= battery25)//if it is greater than the dead state, but less than battery25 percent
         {
-             display.drawBitmap(98, 0, battery_25pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+             //display.drawBitmap(98, 0, battery_25pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+             u8g2.drawXBM( 80, 0, LOGO_WIDTH, LOGO_HEIGHT, battery_25pc);
         }
         else
         {
          //  display.println("50%");//otherwise, it is greater than the 25%, but still lower than the 50%, so show 50%
-           display.drawBitmap(98, 0, battery_50pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+           //display.drawBitmap(98, 0, battery_50pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+           u8g2.drawXBM( 80, 0, LOGO_WIDTH, LOGO_HEIGHT, battery_50pc);
         }
       }
     }
@@ -307,14 +328,18 @@ void displayChargeIcon()
       if(chargePercent >= batteryFull)//if the battery is greater than the full mark (which is 90%)
       {
         //show the full battery
-         display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+         //display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+         u8g2.drawXBM( 80, 0, LOGO_WIDTH, LOGO_HEIGHT, battery_100pc);
       }
       else //75 percent is higher than 50% and lower than 100%
       {
       //   display.println("75%");
-           display.drawBitmap(98, 0, battery_75pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+           //display.drawBitmap(98, 0, battery_75pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
+           u8g2.drawXBM( 80, 0, LOGO_WIDTH, LOGO_HEIGHT, battery_75pc);
       }
     }
+  
+  u8g2.sendBuffer();
 }
 
 
