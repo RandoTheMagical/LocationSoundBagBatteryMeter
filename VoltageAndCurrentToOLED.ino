@@ -64,6 +64,9 @@ float Bat25Percent = 7.48;
 float Bat0Percent = 6.6;  //6.64v is considered fully flat
 */
 
+float BatteryFullyCharged = 8.2;
+float BatteryNomVoltage = 7.4;
+float BatteryFlatVoltage = 6.2;
 //percentages where the icon will show  relevent icon
 int batteryDead = 10;
 int battery25 = 30;
@@ -131,17 +134,18 @@ void setup() {
     Serial.println("Failed to begin INA226");
   }
 
-  u8g2.clearBuffer();          // clear the internal memory
   u8g2.setFont(u8g2_font_ncenB08_tr);  // choose a suitable font
-  u8g2.drawStr(0,10,"power monitor booting");  // write something to the internal memory
-  u8g2.sendBuffer();          // transfer internal memory to the display
-  delay(2000);
   u8g2.clearDisplay();
   u8g2.sendBuffer();          // transfer internal memory to the display
 
- // display.setTextSize(1);
-//  display.setTextColor(WHITE);
-
+ for(int i = -32; i<=0;i++)
+ {
+ // bitmap_mattruthlogo
+ u8g2.drawXBM( 0, i, SCREEN_WIDTH, SCREEN_HEIGHT, bitmap_mattruthlogo);
+ u8g2.sendBuffer();   
+ delay(50);
+ }
+delay(2000);
   previousMillis, lastread = millis();
   previousWriteMillis, previousWrite = millis();
 }
@@ -182,7 +186,8 @@ void loop() {
    if ((currentMillis - previousMillis) >= interval)
    {
     getinfo();
-    chargePercent = int(BatterymWhRemaining / BatterymWh *100);
+ //   chargePercent = int(BatterymWhRemaining / BatterymWh *100); //this should work once we have tracking 
+    chargePercent = (100 / (BatteryFullyCharged - BatteryFlatVoltage) * (busvoltage-BatteryFlatVoltage));
     Serial.println("charged Percent: "+ String(chargePercent));
    // float volts = 0.0;
     menuDisplay();
@@ -259,13 +264,11 @@ void menuDisplay()
     {
       //display.setTextSize(1);
       u8g2.setFont(u8g2_font_ncenB08_tr);  // choose a suitable font
-      //display.println(String(int(mAh)) +"mAh");
-      u8g2.drawStr(0,16, (String(int(mAh)) +"mAh").c_str());
-      //display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
-      //display.println(String(BatterymWhRemaining) +"Wh Remaining");
-      // display.println(String(energy_mWh) +"mWh used so far");
-      u8g2.drawStr(0,32, (String(energy_mWh) +"mWh used so far").c_str());
-      // display.println(BatterymWh);
+      //u8g2.drawStr(0,16, (String(int(mAh)) +"mAh").c_str());
+      u8g2.drawStr(0,12, (String(busvoltage) + "V").c_str());
+      u8g2.drawStr(40,12, (String(current_mA/1000) +" A").c_str());
+      u8g2.drawStr(0,32, (String(energy_mWh) +"mWh used").c_str());
+ 
     }
     else if(menuNumb == 2)
     {
@@ -327,9 +330,10 @@ void displayChargeIcon()
       //The battery is greater than 50%
       if(chargePercent >= batteryFull)//if the battery is greater than the full mark (which is 90%)
       {
-        //show the full battery
-         //display.drawBitmap(98, 0, battery_100pc, LOGO_WIDTH, LOGO_HEIGHT, 1);
          u8g2.drawXBM( 80, 0, LOGO_WIDTH, LOGO_HEIGHT, battery_100pc);
+         Serial.println("100%");
+         Serial.println(chargePercent);
+         Serial.println(batteryFull);
       }
       else //75 percent is higher than 50% and lower than 100%
       {
