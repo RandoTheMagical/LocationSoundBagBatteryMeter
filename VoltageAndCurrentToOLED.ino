@@ -1,12 +1,13 @@
 /*
  * This is the code for my soundbag power monitor.
- * Modified for the INA219 power meter used in the pcb mounted version of my power supply
- * also testing github
+ * Feel free to modify this program, improve it, customise it. Make it work for you.
+ * If you like, Let me know how you went, I'd love to hear other peoples successes with it
+ * 
+ * hardware expected:
+ * 128x32 SSD1306 i2c OLED display
+ * INA219 i2c module on default i2c address
  */
- 
-//#include <INA226_asukiaaa.h>
 #include <Adafruit_INA219.h>
-
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -39,7 +40,6 @@ float mAh = 0;
 float energy_mWh = 0;
 
 float BatterymAh = 0; //this is the measured capacity of the battery.
-//in the planned complete system, it will read from the RFID chip on the battery.
 float BatterymWh = 53280; //possibly will use the Wh rating of the battery - 53.28 is the stated rating on the np-f970 battery
 float BatterymWhRemaining = 53280; //currently set to same as BatteryWh, but in the monitoring system will most likely be read, and set from the RFID chip initially
 
@@ -55,10 +55,6 @@ const long writeInterval = 60000; //1 MINUTE
 void setup() {
  Serial.begin(115200);
  pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
-  //start up RFID reader
-  //read data from RFID module
-     //read batterymAh
-     //read batteryWhRemaining
 
   //Start the OLED desplay:
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
