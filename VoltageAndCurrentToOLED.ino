@@ -1,45 +1,27 @@
 /*
  * This is the code for my soundbag power monitor.
- * Modified for the INA219 power meter used in the pcb mounted version of my power supply
- * also testing github
+ * for the INA219 power meter used in the pcb mounted version of my power supply
+ * I have it running on a RP2040 Zero. It should work on an arduino -  that's where I started with it, you might need to make some tweaks though
+ *  
+ *  Pin 2 = Tied high - press button for Reset counter (this is more for developing some features I'm working on 
+ *    - either find teh section in code to remove the button, or simply put in the pull up resistor, and don't bother with the button.
+ *  Pin3 = Tied high - press button for menu change
+ *  Pin4 = SDA for i2c - connected to board and OLED
+ *  Pin5 = SCL for i2c - connected to board and OLED
+ *  
+ *  You will need to install the U8g2lib library for the OLED, and the Adafruit_INA219 for the current sensor
  */
 
 
- /* Typical pin layout used:
- * -----------------------------------------------------------------------------------------
- *             MFRC522      Arduino       Arduino   Arduino    Arduino          Arduino
- *             Reader/PCD   Uno/101       Mega      Nano v3    Leonardo/Micro   Pro Micro
- * Signal      Pin          Pin           Pin       Pin        Pin              Pin
- * -----------------------------------------------------------------------------------------
- * RST/Reset   RST          9             5         D9         RESET/ICSP-5     RST
- * SPI SS      SDA(SS)      10            53        D10        10               10
- * SPI MOSI    MOSI         11 / ICSP-4   51        D11        ICSP-4           16
- * SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
- * SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
- *
- * More pin layouts for other boards can be found here: https://github.com/miguelbalboa/rfid#pin-layout
- */
-
-
-//#include <INA226_asukiaaa.h>
 #include <Adafruit_INA219.h>
-//#include <MFRC522.h> //this is for the RFID reader. Uncomment when ready to start deploying. Will need to install on surface to work there.
 
-//#include <SPI.h>
+
 #include <Wire.h>
 #include <Arduino.h>
 #include <U8g2lib.h>
-//#include <Adafruit_GFX.h>
-//#include <Adafruit_SSD1306.h>
 #include "battery.h"
 
 Adafruit_INA219 ina219;
-
-//following defines are for RFID tag reader. uncomment when deploying rfid
-/*
-#define RST_PIN         9          // Configurable, see typical pin layout above
-#define SS_PIN          10         // Configurable, see typical pin layout above
-*/
 
 #define LED_BUILTIN 13
 #define Pin_button_reset 2
@@ -55,14 +37,6 @@ Adafruit_INA219 ina219;
 U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // Adafruit ESP8266/32u4/ARM Boards + FeatherWing OLED
 
 //MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance. for rfid reader
-
-/*
-float Bat100Percent = 8.1; //8.4v is considered fully charged
-//float Bat75Percent = ; //75 percent is higher than 50% and lower than 100%
-float Bat50Percent = 7.64;
-float Bat25Percent = 7.48;
-float Bat0Percent = 6.6;  //6.64v is considered fully flat
-*/
 
 float BatteryFullyCharged = 8.2;
 float BatteryNomVoltage = 7.4;
@@ -95,8 +69,6 @@ unsigned long previousWrite;
 
 volatile int buttonState = 0;
 
-//(Y/X *100 = P%)
-//chargePercent = int(BatterymWhRemaining / BatterymWh *100);
 int chargePercent;
 int menuNumb = 1; //this number will indicate which display menu is selected
 /*
@@ -115,16 +87,7 @@ void setup() {
  pinMode(Pin_button_reset, INPUT); //reset counter button on pin 2
  pinMode(Pin_button_menu, INPUT);
  
-//attachInterrupt(digitalPinToInterrupt(3), pin_ISR, HIGH);
-
-//  mfrc522.PCD_Init();    // Init MFRC522 rfid reader
-//  delay(4);       // Optional delay. Some board do need more time after init to be ready, see Readme
-
-  
-  //read data from RFID module
-     //read batterymAh
-     //read batteryWhRemaining
-  loadInfo();//this function will read the battery info from the RFID chip, and also check the voltage on the battery
+  loadInfo();
 
   //Start the OLED desplay:
   u8g2.begin();
@@ -140,7 +103,6 @@ void setup() {
 
  for(int i = -32; i<=0;i++)
  {
- // bitmap_mattruthlogo
  u8g2.drawXBM( 0, i, SCREEN_WIDTH, SCREEN_HEIGHT, bitmap_mattruthlogo);
  u8g2.sendBuffer();   
  delay(50);
@@ -174,9 +136,6 @@ void loop() {
         }
     }
     
-  
-
- // int16_t ma, mv, mw;
   if((currentMillis - previousWriteMillis) >= writeInterval)
     {
       previousWriteMillis = currentMillis;
@@ -189,12 +148,10 @@ void loop() {
  //   chargePercent = int(BatterymWhRemaining / BatterymWh *100); //this should work once we have tracking 
     chargePercent = (100 / (BatteryFullyCharged - BatteryFlatVoltage) * (busvoltage-BatteryFlatVoltage));
     Serial.println("charged Percent: "+ String(chargePercent));
-   // float volts = 0.0;
+
     menuDisplay();
     displayChargeIcon(); 
-   //   display.println("voltage:" +String(mw) + "mW");
-    //  display.setCursor(0,0);
- //   u8g2.clearDisplay();
+
     u8g2.sendBuffer();          // transfer internal memory to the display
     delay(1000);
     previousMillis = currentMillis;
