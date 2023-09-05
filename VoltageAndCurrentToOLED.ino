@@ -112,7 +112,7 @@ const float maxCharged = 8.3; //the maximum charge off a charger should be 8.4v.
 
 void setup() {
  Serial.begin(115200);
- pinMode(Pin_button_reset, INPUT); //reset counter button on pin 2
+ pinMode(Pin_button_reset, INPUT_PULLUP); //reset counter button on pin 2
  pinMode(Pin_button_menu, INPUT);
  
 //attachInterrupt(digitalPinToInterrupt(3), pin_ISR, HIGH);
@@ -162,7 +162,7 @@ void loop() {
       ResetPowerCount();//reset the project
     }
 
-    if (modeButtonState == 0)
+    if (modeButtonState == 1)
     {
        if(menuNumb <4 )
         {
