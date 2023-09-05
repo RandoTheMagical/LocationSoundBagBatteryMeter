@@ -54,7 +54,7 @@ const long writeInterval = 60000; //1 MINUTE
 
 void setup() {
  Serial.begin(115200);
- pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
+ //pinMode(2, INPUT_PULLUP); //reset counter button on pin 2
 
   //Start the OLED desplay:
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
@@ -76,17 +76,20 @@ void setup() {
 
   previousMillis, lastread = millis();
   previousWriteMillis, previousWrite = millis();
+   Serial.println("end of setup");
 }
 
 void loop() {
 
   unsigned long currentMillis = millis();
   int resetButtonState = digitalRead(2);
+  Serial.println("start of loop");
+/*
     if (resetButtonState == 0) //if button between pin2 and Gnd is pressed (input pulled low)
     {
       ResetPowerCount();//reset the project
     }
-
+*/
   int16_t ma, mv, mw;
   if((currentMillis - previousWriteMillis) >= writeInterval)
     {
@@ -104,10 +107,10 @@ void loop() {
    // float volts = 0.0;
     display.clearDisplay();
     
-      display.println(String(int(mAh)) +"mAh");
-      display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
-      display.println(String(BatterymWhRemaining) +"Wh Remaining");
-       display.println(String(energy_mWh) +"mWh used so far");
+    display.println(String(int(mAh)) +"mAh");
+    display.println(String(busvoltage) + "V," +String(current_mA) + "mA");
+    display.println(String(BatterymWhRemaining) +"Wh Remaining");
+    display.println(String(energy_mWh) +"mWh used so far");
    
   
     if(busvoltage <= Bat50Percent)//7.64 is 50 percent.
