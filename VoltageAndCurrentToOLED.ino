@@ -194,7 +194,6 @@ void loop() {
     displayChargeIcon(); 
    //   display.println("voltage:" +String(mw) + "mW");
     //  display.setCursor(0,0);
- //   u8g2.clearDisplay();
     u8g2.sendBuffer();          // transfer internal memory to the display
     delay(1000);
     previousMillis = currentMillis;
@@ -203,6 +202,7 @@ void loop() {
 }//end of loop function
 
 void getinfo()
+ //   u8g2.clearDisplay();
 {
   unsigned long newtime;
   shuntvoltage = ina219.getShuntVoltage_mV();
