@@ -1,10 +1,15 @@
 /*
  * This is the code for my soundbag power monitor.
- * Modified for the INA219 power meter used in the pcb mounted version of my power supply
+ * Modified for two ina19 power meters used in the pcb mounted version of my power supply
  * also testing github
  */
 
+/*
+INA219 i2C address
+1 - Battery input - 0x40 
+2 - 12v Output    - 0x41 
 
+*/
  /* Typical pin layout used:
  * -----------------------------------------------------------------------------------------
  *             MFRC522      Arduino       Arduino   Arduino    Arduino          Arduino
@@ -34,6 +39,7 @@
 #include "battery.h"
 
 Adafruit_INA219 ina219;
+Adafruit_INA219 ina219_Regulated(0x41);
 
 //following defines are for RFID tag reader. uncomment when deploying rfid
 /*
@@ -81,6 +87,9 @@ float loadvoltage_V = 0;
 float power_mW = 0;
 float mAh = 0;
 float energy_mWh = 0;
+
+float RegVoltV = 1;
+float RegCurrentMa = 1;
 
 float BatterymAh = 0; //this is the measured capacity of the battery. The tested battery level is aprox 7000mAh / 48110mWh
 //in the planned complete system, it will read from the RFID chip on the battery.
@@ -131,8 +140,14 @@ void setup() {
 
   //Start the INA219 current sensor:
   if (ina219.begin() != 0) {
-    Serial.println("Failed to begin INA226");
+    Serial.println("Failed to begin INput INA226");
   }
+  if (ina219_Regulated.begin() != 0) {
+    Serial.println("Failed to begin OUTput INA226");
+  }
+  
+    Serial.println("it initialized");
+  
 
   u8g2.setFont(u8g2_font_ncenB08_tr);  // choose a suitable font
   u8g2.clearDisplay();
@@ -206,6 +221,8 @@ void getinfo()
 {
   unsigned long newtime;
   shuntvoltage = ina219.getShuntVoltage_mV();
+  RegVoltV = ina219_Regulated.getBusVoltage_V();
+  RegCurrentMa = ina219_Regulated.getCurrent_mA();
   busvoltage = ina219.getBusVoltage_V();
   current_mA = ina219.getCurrent_mA();
   power_mW = ina219.getPower_mW();
@@ -237,6 +254,7 @@ void saveInfo()
 void loadInfo()
 {
   float batteryLevelmV = ina219.getShuntVoltage_mV();
+//  float RegLevelmV = ina219_Regulated.getShuntVoltage_mV();
   //loads battery info from RFID eeprom
   //float BatterymWh - The total Mwh of the battery
   //float BatterymWhRemaining - The remaining power left in the battery
@@ -267,7 +285,9 @@ void menuDisplay()
       //u8g2.drawStr(0,16, (String(int(mAh)) +"mAh").c_str());
       u8g2.drawStr(0,12, (String(busvoltage) + "V").c_str());
       u8g2.drawStr(40,12, (String(current_mA/1000) +" A").c_str());
-      u8g2.drawStr(0,32, (String(energy_mWh) +"mWh used").c_str());
+      //u8g2.drawStr(0,32, (String(energy_mWh) +"mWh used").c_str());
+      u8g2.drawStr(0,32, (String(RegVoltV) + "V").c_str());
+      u8g2.drawStr(40,32, (String(RegCurrentMa/1000) +" A").c_str());   
  
     }
     else if(menuNumb == 2)
