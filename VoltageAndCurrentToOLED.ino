@@ -165,11 +165,13 @@ delay(2000);
   previousWriteMillis, previousWrite = millis();
 }
 
+  int modeButtonClicked = 0;
 void loop() {
 
   unsigned long currentMillis = millis();
   int resetButtonState = digitalRead(Pin_button_reset);
   int modeButtonState = digitalRead(Pin_button_menu);
+
 
     u8g2.clearBuffer();
     if (resetButtonState == 0) //if button between pin2 and Gnd is pressed (input pulled low)
@@ -177,8 +179,9 @@ void loop() {
       ResetPowerCount();//reset the project
     }
 
-    if (modeButtonState == 1)
+    if (modeButtonState == 1 && modeButtonClicked == 0)
     {
+      modeButtonClicked = 1;
        if(menuNumb <4 )
         {
           menuNumb++;
@@ -188,6 +191,11 @@ void loop() {
           menuNumb = 1;
         }
     }
+
+    if (modeButtonState == 0 && modeButtonClicked == 1)
+      {
+        modeButtonClicked = 0;
+      }
     
   
 
@@ -210,7 +218,7 @@ void loop() {
    //   display.println("voltage:" +String(mw) + "mW");
     //  display.setCursor(0,0);
     u8g2.sendBuffer();          // transfer internal memory to the display
-    delay(1000);
+//    delay(1000);
     previousMillis = currentMillis;
   } //end of if interval check
     
